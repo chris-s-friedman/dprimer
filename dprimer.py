@@ -9,8 +9,9 @@ import csv
 import pandas as pd
 
 
-# NOTE: the d prime calculation is respectfully taken from Jonas Lindelov's 
-#great tutorial on calculating D', Beta, C, and AD' in python and PHP. The #tutorial is available at http://lindeloev.net/?p=29
+# NOTE: the d prime calculation is taken from Jonas Lindelov's great tutorial on
+#calculating D', Beta, C, and AD' in python and PHP. The #tutorial is available 
+#at http://lindeloev.net/?p=29
 
 ################################################################################
 ''' Naming the variables that come out of OpenVibe'''
@@ -35,111 +36,48 @@ detect_nonalpha = 33286 #OVTK_StimulationId_NonTarget
 
 #This section uses the pandas module to manipulate the data
 
-df = pd.read_csv('record-2016.02.22-11.34.46.csv', sep=';', header=0)
-keep_cols = ["Identifier"]
-df = df[keep_cols]
-df.to_csv("data.csv", index=False)
+df = pd.read_csv('record-2016.02.22-11.34.46.csv', sep=';', header=0) #read data
+keep_cols = ["Identifier"] 
+df = df[keep_cols] # Removes unwanted columns (time and length of stim)
 
-def stim(row):
-    if row['Identifier'] == stim_alpha:
-        return 1
-    elif row['Identifier'] == stim_nonalpha:
-        return 5
+# adds the "Stim" column, telling us what our stim is. 
+df.loc[df['Identifier'] == stim_alpha, 'Stim'] = stim_alpha
+df.loc[df['Identifier'] == stim_nonalpha, 'Stim'] = stim_nonalpha
 
-def detect(row):
-    if row['Identifier'] == detect_alpha:
-        return 10
-    elif row['Identifier'] == detect_nonalpha:
-        return 20
-    
-def classifier(row):
-    return row['Stim']+row['Detect']
+# adds the "detect column, telling us what the detection is.
+df.loc[df['Identifier'] == detect_alpha, 'Detect'] = detect_alpha
+df.loc[df['Identifier'] == detect_nonalpha, 'Detect'] = detect_nonalpha
 
-df['Stim']   = df.apply(stim,axis=1)
-df['Detect'] = df.apply(detect,axis=1)
-df['Classifier'] = df.apply(classifier,axis=1)
+#fill NaN by method ffill (propagate last valid observation forward to next 
+#valid). This makes it so every detection is connected to some stim. 
+df['Stim'] = df['Stim'].ffill()
 
-print df
+#creates a classifier column
+df['Classifier'] = df['Stim'] + df['Detect']
 
-'''
-for row in df:
-	if stim_alpha:
-		stim = 1
-		print "eyes closed"
-	elif stim_nonalpha:
-		stim = 0
-		print "eyes open"
+#using the classifier, detects if each instance is a hit, miss, etc. 
+hits = df[df['Classifier']== stim_alpha + detect_alpha].count()["Classifier"]
+misses = df[df['Classifier']== stim_alpha +
+	detect_nonalpha].count()["Classifier"]
+fas = df[df['Classifier']== stim_nonalpha + detect_alpha].count()["Classifier"]
+crs = df[df['Classifier']== stim_nonalpha +
+	detect_nonalpha].count()["Classifier"]
 
-for row in df:
-	if detect_alpha:
-		detect = 1
-		print "alpha detected"
-	elif detect_nonalpha:
-		detect = 0
-		print "alpha not detected!"
+#print out the value of each type to the console. 
+print "hits:", hits
+print "misses:", misses
+print "False Alarms:", fas
+print "Correct Rejections:", crs
 
-print stim
-print detect
-'''
-
-
-
-
-
-'''
-df1 = df.pivot_table(index='Identifier',values='Time (s)',aggfunc=len)
-
-#df_predict_alpha = df[df['Identifier'] == predict_alpha]
-
-print df_predict_alpha.head(5)
-
-'''
-#This section uses the csv module to manipulate the data.
-'''
-f = open('record-2016.02.22-11.34.46.csv') # Opes up the file written by OV
-
-with f as source:
-	rdr= csv.reader(f, delimiter=';')
-	with open("result", "wb") as result:
-		wtr= csv.writer( result )
-		for r in rdr:
-			wtr.writerow( (r[1]) )
-			
-print wtr
-
-for row in csv.f:
-	if predict_alpha == row[1]:
-		# 1)get the corresponding timestamp for each iteration of predict_alpha.
-			# 2) look to see what the most recent stim_x is, for every iteration of predict_alpha.
-				#then make a count of how many times stim_alpha is the most 	
-				#recent stim_x. Place this count in the variable "hits"
-				#now make a count of how many times stim_nonalpha is the most 	
-				#recent stim_x. Place this count in the variable "misses."
-		print "is there!"
-	if predict_nonalpha == row[1]:
-		#get the corresponding timestamp for each iteration of predict_nonalpha.
-			#code that looks looks to see what the most recent stim_x is, for 
-			#every iteration of predict_nonalpha.
-				#then make a count of how many times stim_alpha is the most 	
-				#recent stim_x. Place this count in the variable "fas."
-				#now make a count of how many times stim_nonalpha is the most 	
-				#recent stim_x. Place this count in the variable "crs."
-		print "is there2"
-
-file.close
-
-'''
 
 ################################################################################
 """ Now, on to computing d'! """
 
-hits = 20
-misses = 5
-fas = 10
-crs = 15
-
+#computes z
 Z = norm.ppf
 
+
+#d' calculator
 def dPrime(hits, misses, fas, crs):
     # Floors and ceilings are replaced by half hits and half FA's
     halfHit = 0.5/(hits+misses)
@@ -158,10 +96,12 @@ def dPrime(hits, misses, fas, crs):
     # Return d', beta, c and Ad'
     out = {}
     out['d'] = Z(hitRate) - Z(faRate)
-    out['beta'] = exp(Z(faRate)**2 - Z(hitRate)**2)/2
-    out['c'] = -(Z(hitRate) + Z(faRate))/2
-    out['Ad'] = norm.cdf(out['d']/sqrt(2))
+    #out['beta'] = exp(Z(faRate)**2 - Z(hitRate)**2)/2
+    #out['c'] = -(Z(hitRate) + Z(faRate))/2
+    #out['Ad'] = norm.cdf(out['d']/sqrt(2))
     return out
     
 d = dPrime(hits,misses,fas,crs)
+
+#prints d' to the console.
 print d
