@@ -1,0 +1,15 @@
+Identifier,
+32769,experiment_start
+32777,rest_start
+32778,rest_stop
+32773,trial_start
+32771,segment_start
+33031,label_07_nonalpha_trigger
+32779,visualstimulation_start
+32780,visualstimulation_stop
+33025,label_01_alpha_trigger
+32772,Segment_stop
+32774,trial_stop
+32770,experiment_stop
+33285,target
+33286,nontarget
