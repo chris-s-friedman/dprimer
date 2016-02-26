@@ -54,10 +54,6 @@ df = df.sort('Time (s)') # Orders the data frame by time
 
 #This section uses the pandas module to manipulate the data
 
-df = pd.read_csv('record-2016.02.22-11.34.46.csv', sep=';', header=0) #read data
-keep_cols = ["Time (s)", "Identifier"] 
-df = df[keep_cols] # Removes unwanted columns (time and length of stim)
-
 # adds the "Stim" column, telling us what our stim is. 
 df.loc[df['Identifier'] == stim_alpha, 'Stim'] = stim_alpha
 df.loc[df['Identifier'] == stim_nonalpha, 'Stim'] = stim_nonalpha
