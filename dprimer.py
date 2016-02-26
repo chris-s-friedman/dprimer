@@ -43,10 +43,10 @@ class_cr = stim_nonalpha + detect_nonalpha
 
 # Import the stimulation and threshold file
 
-df_stim = pd.read_csv('stim.csv', sep=';', header=0) # Load up stimulations
+df_stim = pd.read_csv('record/stim.csv', sep=';', header=0) # Load up stimulations
 keep_cols = ["Time (s)", "Identifier"] #define the columns we want in stims
 df_stim = df_stim[keep_cols] # Remove unwanted "duration column
-df_thresh = pd.read_csv('thresh.csv', sep=';', header=0) #load up the thresholds
+df_thresh = pd.read_csv('record/thresh.csv', sep=';', header=0) #load up the thresholds
 
 df = df_stim.merge(df_thresh, left_on='Time (s)', right_on='Time (s)',
 	how='outer') # Merge the stim and threshold files
@@ -117,4 +117,4 @@ d = dPrime(hits,misses,fas,crs)
 print d
 
 dframe = pd.DataFrame.from_items([('Time (s)', 0), ("d'", d)])
-dframe.to_csv('dprime.csv', sep=';')
+dframe.to_csv('record/dprime.csv', sep=';')
