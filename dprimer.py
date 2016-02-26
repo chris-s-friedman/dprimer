@@ -5,6 +5,7 @@
 from __future__ import division # Not neccessary in Python 3 and later
 from scipy.stats import norm
 from math import exp,sqrt
+from numpy import isnan
 import csv
 import pandas as pd
 
@@ -31,13 +32,30 @@ stim_nonalpha = 33025 #OVTK_StimulationId_Label_07
 detect_alpha = 33285 #OVTK_StimulationId_Target 
 detect_nonalpha = 33286 #OVTK_StimulationId_NonTarget 
 
+# These four are the four possible classifications for each detection
+class_hit = stim_alpha + detect_alpha
+class_miss = stim_alpha + detect_nonalpha
+class_fa = stim_nonalpha + detect_alpha
+class_cr = stim_nonalpha + detect_nonalpha
+
 ################################################################################
 ''' Now to get to using the csv files created by OpenVibe! '''
+
+# Import the stimulation and threshold file
+
+df_stim = pd.read_csv('stim.csv', sep=';', header=0) # Load up stimulations
+keep_cols = ["Time (s)", "Identifier"] #define the columns we want in stims
+df_stim = df_stim[keep_cols] # Remove unwanted "duration column
+df_thresh = pd.read_csv('thresh.csv', sep=';', header=0) #load up the thresholds
+
+df = df_stim.merge(df_thresh, left_on='Time (s)', right_on='Time (s)',
+	how='outer') # Merge the stim and threshold files
+df = df.sort('Time (s)') # Orders the data frame by time
 
 #This section uses the pandas module to manipulate the data
 
 df = pd.read_csv('record-2016.02.22-11.34.46.csv', sep=';', header=0) #read data
-keep_cols = ["Identifier"] 
+keep_cols = ["Time (s)", "Identifier"] 
 df = df[keep_cols] # Removes unwanted columns (time and length of stim)
 
 # adds the "Stim" column, telling us what our stim is. 
@@ -55,13 +73,14 @@ df['Stim'] = df['Stim'].ffill()
 #creates a classifier column
 df['Classifier'] = df['Stim'] + df['Detect']
 
+df.loc[isnan(df['Classifier']) == False, 'Start'] = df['Time (s)']
+#df.loc[isnan(df['Classifier']) == False, 'End'] = 
+
 #using the classifier, detects if each instance is a hit, miss, etc. 
-hits = df[df['Classifier']== stim_alpha + detect_alpha].count()["Classifier"]
-misses = df[df['Classifier']== stim_alpha +
-	detect_nonalpha].count()["Classifier"]
-fas = df[df['Classifier']== stim_nonalpha + detect_alpha].count()["Classifier"]
-crs = df[df['Classifier']== stim_nonalpha +
-	detect_nonalpha].count()["Classifier"]
+hits = df[df['Classifier']== class_hit].count()["Classifier"]
+misses = df[df['Classifier']== class_miss].count()["Classifier"]
+fas = df[df['Classifier']== class_fa].count()["Classifier"]
+crs = df[df['Classifier']== class_cr].count()["Classifier"]
 
 #print out the value of each type to the console. 
 print "hits:", hits
