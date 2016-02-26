@@ -52,25 +52,20 @@ df = df_stim.merge(df_thresh, left_on='Time (s)', right_on='Time (s)',
 	how='outer') # Merge the stim and threshold files
 df = df.sort('Time (s)') # Orders the data frame by time
 
-#This section uses the pandas module to manipulate the data
-
 # adds the "Stim" column, telling us what our stim is. 
 df.loc[df['Identifier'] == stim_alpha, 'Stim'] = stim_alpha
 df.loc[df['Identifier'] == stim_nonalpha, 'Stim'] = stim_nonalpha
-
-# adds the "detect column, telling us what the detection is.
-df.loc[df['Identifier'] == detect_alpha, 'Detect'] = detect_alpha
-df.loc[df['Identifier'] == detect_nonalpha, 'Detect'] = detect_nonalpha
-
-#fill NaN by method ffill (propagate last valid observation forward to next 
-#valid). This makes it so every detection is connected to some stim. 
+# fill NaN by method ffill (propagate last valid observation forward to next 
+# valid). This makes it so every detection is connected to some stim. 
 df['Stim'] = df['Stim'].ffill()
+
+thresh_col = df.ix[:,2] # Selects the column with the threshold values
+# adds the "detect column, telling us what the detection is.
+df.loc[thresh_col > 0, 'Detect'] = detect_alpha
+df.loc[thresh_col < 0, 'Detect'] = detect_nonalpha
 
 #creates a classifier column
 df['Classifier'] = df['Stim'] + df['Detect']
-
-df.loc[isnan(df['Classifier']) == False, 'Start'] = df['Time (s)']
-#df.loc[isnan(df['Classifier']) == False, 'End'] = 
 
 #using the classifier, detects if each instance is a hit, miss, etc. 
 hits = df[df['Classifier']== class_hit].count()["Classifier"]
@@ -120,3 +115,6 @@ d = dPrime(hits,misses,fas,crs)
 
 #prints d' to the console.
 print d
+
+dframe = pd.DataFrame.from_items([('Time (s)', 0), ("d'", d)])
+dframe.to_csv('dprime.csv', sep=';')
